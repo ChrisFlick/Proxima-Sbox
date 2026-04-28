@@ -1,5 +1,6 @@
 # S&Box Content file types.
 *.scene filter=lfs diff=lfs merge=lfs -text
+*.vmat filter=lfs diff=lfs merge=lfs -text
 
 # 3D Models
 *.dmx filter=lfs diff=lfs merge=lfs -text 
@@ -24,6 +25,7 @@
 *.skp filter=lfs diff=lfs merge=lfs -text
 *.stl filter=lfs diff=lfs merge=lfs -text
 *.ztl filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
 
 # Image
 *.bmp filter=lfs diff=lfs merge=lfs -text
