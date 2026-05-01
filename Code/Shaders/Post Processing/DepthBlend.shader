@@ -101,8 +101,8 @@ PS // Pixel Shader.
         float4 edgeCorrectedColor = colorDelta * g_EffectStrength.EdgeStrength;
 
         // We create a smooth transition of color using the depth of the uv.
-        float normalizedDepth = centerDepth / g_EffectRange.MaxEffectDepth;
-        float4 depthBlendColor = smoothstep(centerColor, g_EffectRange.BlendStart, g_EffectRange.BlendEnd);
+        float normalizedDepth = smoothstep(centerDepth / g_EffectRange.MaxEffectDepth, g_EffectRange.BlendStart, g_EffectRange.BlendEnd);
+        float4 depthBlendColor = nearbyPixelBlendedColor * normalizedDepth;
 
         // How much of the original color is put back in.
         float4 smoothingColor = centerColor * g_EffectStrength.SmoothStrength;
