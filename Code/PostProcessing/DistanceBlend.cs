@@ -12,22 +12,22 @@ public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
     [Property]
     [Category("Range")]
     [Description("The range of nearby pixels that get blended in.")]
-    private float _blendRange = 1;
+    private float _blendRange = 0.25f;
 
     [Property]
     [Category("Range")]
     [Description("The maximum difference of pixel depth before we ignore the color.")]
-    private float _maxDepthDelta = 20f;
+    private float _maxDepthDelta = 5f;
 
     [Property]
     [Category("Range")]
     [Description("At this distance the effect will be in full use.")]
-    private float _maxEffectDepth= 100f;
+    private float _maxEffectDepth= 1000f;
 
     [Property, Range(0f, 1f)]
     [Category("Range")]
     [Description("The starting point of the effects smoothing.")]
-    private float _blendStart = 0f;
+    private float _blendStart = 0.1f;
 
     [Property, Range(0f, 1f)]
     [Category("Range")]
@@ -40,15 +40,6 @@ public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
     [Description("How much edges are maintained.")]
     private float _edgeStrength = 0.08f;
 
-    [Property, Range(0f, 1f)]
-    [Category("Strength")]
-    [Description("How much of the original image is added back in.")]
-    private float _smoothStrength = 0.5f;
-
-    [Property]
-    [Category("Strength")]
-    [Description("How far between the original pixel color the blended color is.")]
-    private float _lerpInterpolation = 0.5f;
 
     private Material _material;
 
@@ -69,8 +60,6 @@ public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
 
         // Effect Strength
         Attributes.Set("DistanceBlend_EdgeStrength", _edgeStrength);
-        Attributes.Set("DistanceBlend_SmoothStrength", _smoothStrength);
-        Attributes.Set("DistanceBlend_LerpInterpolation", _lerpInterpolation);
 
         // Push to .shader
         if (_material == null)

@@ -60,15 +60,15 @@ PS
     // Range
     float blendRange < Attribute("DistanceBlend_BlendRange"); > ;
     float maxDepthDelta < Attribute("DistanceBlend_MaxDistanceDelta"); > ;
-    float maxEffectDepth < Attribute("DistanceBlend_MaxEffectDepth"); > ;
+    float maxEffectDistance < Attribute("DistanceBlend_MaxEffectDepth"); > ;
 
     float blendStart < Attribute("DistanceBlend_BlendStart"); > ;
     float blendEnd < Attribute("DistanceBlend_BlendEnd"); > ;
 
     // Strength
     float edgeStrength < Attribute("DistanceBlend_EdgeStrength"); > ;
-    float smoothStrength < Attribute("DistanceBlend_SmoothStrength"); > ;
-    float lerpInterpolation < Attribute("DistanceBlend_LerpInterpolation"); > ;
+    //float smoothStrength < Attribute("DistanceBlend_SmoothStrength"); > ;
+    //float lerpInterpolation < Attribute("DistanceBlend_LerpInterpolation"); > ;
 
     float4 FindColorAtNearbyUV(float2 uv, float centerDistance, inout int blendCount)
     {
@@ -89,12 +89,12 @@ PS
     float4 MainPs(PixelInput input ) : SV_Target0
     {
         // Center Pixel
-        int blendCount = 1;
         float4 centerColor = g_tColorBuffer.Sample(g_sDefault, input.uv);
         float3 centerWorldPosition = Depth::GetWorldPosition(input.uv);
         float centerDistance = length(centerWorldPosition - g_vCameraPositionWs);
 
         // Sample nearby pixels.
+        int blendCount = 0;
 
         // Top Left Pixel
         float2 topLeftUV = input.uv + float2(-1 * blendRange, -1 * blendRange);
@@ -114,23 +114,18 @@ PS
 
         // Take the average of all nearby pixels at similar similar depth (defined by MaxDepthDelta)
         float4 nearbyPixelBlendedColor =
-            (centerColor + topLeftColor + bottomRightColor + topRightColor + bottomLeftColor) / blendCount;
+            (topLeftColor + bottomRightColor + topRightColor + bottomLeftColor) / blendCount;
 
         // To correct for edges we take the delta of the color and multiply it by EdgeStrength.
         // We do that so edges are kept where there is a large change in color.
         float4 colorDelta = abs(centerColor - nearbyPixelBlendedColor);
         float4 edgeCorrectedColor = colorDelta * edgeStrength;
+        
 
-        // We create a smooth transition of color using the depth of the uv.
-        float normalizedDepth = smoothstep(centerDistance / maxEffectDepth, blendStart, blendEnd);
-        float4 depthBlendColor = nearbyPixelBlendedColor * normalizedDepth;
-
-        // How much of the original color is put back in.
-        float4 smoothingColor = centerColor * smoothStrength;
-
-        // Finally we combine everything and use lerp to smooth everything out a final time.
-        float4 combinedColor = edgeCorrectedColor + depthBlendColor + smoothingColor;
-        float4 blendedColor = lerp(centerColor, combinedColor, lerpInterpolation);
+        // Finally we combine everything and use lerp to smooth everything out based on distance from Camera.
+        float normalizedDistance = smoothstep(centerDistance / maxEffectDistance, blendStart, blendEnd);
+        float4 combinedColor = edgeCorrectedColor + nearbyPixelBlendedColor;
+        float4 blendedColor = lerp(centerColor, combinedColor, normalizedDistance);
 
         return blendedColor;
     }
