@@ -4,6 +4,7 @@ FEATURES
 {
     #include "system.fxc"
     #include "common.fxc"
+    #include "postprocess/shared.hlsl"
 }
 
 MODES
@@ -59,9 +60,12 @@ VS // Vertex Shader
 
 PS // Pixel Shader.
 {
+    #include "postprocess/common.hlsl"
+    #include "postprocess/functions.hlsl"
+    
     // Screen State.
-    SamplerState SampleState < Filter(Point); > ;
-    Texture2D ColorBuffer < Attribute("ColorBuffer"); SrgbRead(true); > ;
+    SamplerState g_SampleState < Filter(Point); > ;
+    Texture2D g_ColorBuffer < Attribute("g_ColorBuffer"); SrgbRead(true); > ;
 
     EffectRange g_EffectRange;
     EffectStrength g_EffectStrength;
@@ -70,7 +74,7 @@ PS // Pixel Shader.
     {   
         // Center Pixel
         int blendCount = 1;
-        float4 centerColor = ColorBuffer.Sample(SampleState, input.uv);
+        float4 centerColor = g_ColorBuffer.Sample(g_SampleState, input.uv);
         float centerDepth = Depth::Get(input.uv);
 
         // Sample nearby pixels.
@@ -110,6 +114,7 @@ PS // Pixel Shader.
         // Finally we combine everything and use lerp to smooth everything out a final time.
         float4 combinedColor = edgeCorrectedColor + depthBlendColor + smoothingColor;
         float4 blendedColor = lerp(centerColor, combinedColor, g_EffectStrength.LerpInterpolation);
+        
         return blendedColor;
     }
 
@@ -122,7 +127,7 @@ PS // Pixel Shader.
         {
             blendCount++;
 
-            return ColorBuffer.Sample(SampleState, uv);
+            return g_ColorBuffer.Sample(g_SampleState, uv);
         }
 
         return float4(0, 0, 0, 0);

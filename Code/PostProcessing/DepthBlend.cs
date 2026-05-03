@@ -49,6 +49,13 @@ public sealed class DepthBlend : BasePostProcess
     [Category("Strength")]
     [Description("How far between the original pixel color the blended color is.")]
     private float _lerpInterpolation = 0.5f;
+
+    private Material _material;
+
+    protected override void OnEnabled()
+    {
+        _material = Material.FromShader("Shaders/PostProcessing/DepthBlend.shader");
+    }
     
 	public override void Render()
 	{
@@ -64,5 +71,14 @@ public sealed class DepthBlend : BasePostProcess
         Attributes.Set("DepthBlend_EdgeStrength", _edgeStrength);
         Attributes.Set("DepthBlend_SmoothStrength", _smoothStrength);
         Attributes.Set("DepthBlend_LerpInterpolation", _lerpInterpolation);
+
+        // Push to .shader
+        if (_material == null)
+        {
+            _material = Material.FromShader("Shaders/PostProcessing/DepthBlend.shader");
+        }
+
+        BlitMode blitMode = BlitMode.WithBackbuffer(_material, Sandbox.Rendering.Stage.AfterPostProcess, 200, false);
+        Blit(blitMode, "Depth Blend");
 	}
 }
