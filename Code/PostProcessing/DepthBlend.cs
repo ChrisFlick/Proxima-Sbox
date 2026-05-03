@@ -2,11 +2,11 @@ using System;
 using System.ComponentModel;
 using Sandbox;
 
-[Title("Depth Blend")]
+[Title("Distance Blend")]
 [Category("Post Processing")]
 [Description("Blends pixels at a distance")]
 [Icon("grain")]
-public sealed class DepthBlend : BasePostProcess
+public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
 {
     // Effect Range
     [Property]
@@ -60,17 +60,17 @@ public sealed class DepthBlend : BasePostProcess
 	public override void Render()
 	{
         // Effect Range
-		Attributes.Set("DepthBlend_BlendRange", _blendRange);
-        Attributes.Set("DepthBlend_MaxDepthDelta", _maxDepthDelta);
-        Attributes.Set("DepthBlend_MaxEffectDepth", _maxEffectDepth);
+		Attributes.Set("DistanceBlend_BlendRange", _blendRange);
+        Attributes.Set("DistanceBlend_MaxDistanceDelta", _maxDepthDelta);
+        Attributes.Set("DistanceBlend_MaxEffectDepth", _maxEffectDepth);
 
-        Attributes.Set("DepthBlend_BlendStart", _blendStart);
-        Attributes.Set("DepthBlend_BlendEnd", _blendEnd);
+        Attributes.Set("DistanceBlend_BlendStart", _blendStart);
+        Attributes.Set("DistanceBlend_BlendEnd", _blendEnd);
 
         // Effect Strength
-        Attributes.Set("DepthBlend_EdgeStrength", _edgeStrength);
-        Attributes.Set("DepthBlend_SmoothStrength", _smoothStrength);
-        Attributes.Set("DepthBlend_LerpInterpolation", _lerpInterpolation);
+        Attributes.Set("DistanceBlend_EdgeStrength", _edgeStrength);
+        Attributes.Set("DistanceBlend_SmoothStrength", _smoothStrength);
+        Attributes.Set("DistanceBlend_LerpInterpolation", _lerpInterpolation);
 
         // Push to .shader
         if (_material == null)

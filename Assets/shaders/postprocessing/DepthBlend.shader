@@ -1,135 +1,137 @@
-// Sample the colors of nearby pixels and blend them together increasing the intesity the further the depthis.
-
-FEATURES
+HEADER
 {
-    #include "system.fxc"
-    #include "common.fxc"
-    #include "postprocess/shared.hlsl"
+    DevShader = true;
 }
 
 MODES
 {
+    Default();
     Forward();
-    Depth();
 }
 
 COMMON
 {
-    struct VertexInput
-    {
-        float3 position : POSITION < Semantic(PosXyz); > ;
-        float2 uv : TEXCOORD0 < Semantic(LowPrecisionUv); > ;
-    };
-
-    struct PixelInput
-    {
-        float4 position : SV_Position;
-        float2 uv : TEXCOORD0;
-    };
-
-    struct EffectRange
-    {
-        float BlendRange < Attribute("DepthBlend_BlendRange"); > ;
-        float MaxDepthDelta < Attribute("DepthBlend_MaxDepthDelta"); > ;
-        float MaxEffectDepth < Attribute("DepthBlend_MaxEffectDepth"); > ;
-
-        float BlendStart < Attribute("DepthBlend_BlendStart"); > ;
-        float BlendEnd < Attribute("DepthBlend_BlendEnd"); > ;
-    }
-
-    struct EffectStrength
-    {
-        float EdgeStrength < Attribute("DepthBlend_EdgeStrength"); > ;
-        float SmoothStrength < Attribute("DepthBlend_SmoothStrength"); > ;
-        float LerpInterpolation < Attribute("DepthBlend_LerpInterpolation"); > ;
-    }
+    #include "postprocess/shared.hlsl"
 }
 
-VS // Vertex Shader
+struct VertexInput
 {
-    PixelInput MainVs(VertexInput input)
-    {
-        PixelInput PSInput;
+    float3 vPositionOs : POSITION < Semantic( PosXyz ); >;
+    float2 vTexCoord : TEXCOORD0 < Semantic( LowPrecisionUv ); >;
+};
 
-        PSInput.position = float4(input.position.xy, 0.0f, 1.0f);
-        PSInput.uv = input.uv;
-        
-        return PSInput;
+struct PixelInput
+{
+    float2 uv : TEXCOORD0;
+
+	// VS only
+	#if ( PROGRAM == VFX_PROGRAM_VS )
+		float4 vPositionPs: SV_Position;
+	#endif
+
+	// PS only
+	#if ( ( PROGRAM == VFX_PROGRAM_PS ) )
+		float4 vPositionSs: SV_Position;
+	#endif
+};
+
+VS
+{
+    PixelInput MainVs( VertexInput input )
+    {
+        PixelInput output;
+
+        output.vPositionPs = float4(input.vPositionOs.xy, 0.0f, 1.0f);
+        output.uv = input.vTexCoord;
+        return output;
     }
 }
 
-PS // Pixel Shader.
+PS
 {
     #include "postprocess/common.hlsl"
     #include "postprocess/functions.hlsl"
-    
-    // Screen State.
-    SamplerState g_SampleState < Filter(Point); > ;
-    Texture2D g_ColorBuffer < Attribute("g_ColorBuffer"); SrgbRead(true); > ;
 
-    EffectRange g_EffectRange;
-    EffectStrength g_EffectStrength;
+    #include "common/classes/Depth.hlsl"
 
-    float4 MainPS(PixelInput input) : SV_Target
-    {   
+    // Textures
+    Texture2D g_tColorBuffer < Attribute("ColorBuffer"); SrgbRead(true); > ;
+
+    // Range
+    float blendRange < Attribute("DistanceBlend_BlendRange"); > ;
+    float maxDepthDelta < Attribute("DistanceBlend_MaxDistanceDelta"); > ;
+    float maxEffectDepth < Attribute("DistanceBlend_MaxEffectDepth"); > ;
+
+    float blendStart < Attribute("DistanceBlend_BlendStart"); > ;
+    float blendEnd < Attribute("DistanceBlend_BlendEnd"); > ;
+
+    // Strength
+    float edgeStrength < Attribute("DistanceBlend_EdgeStrength"); > ;
+    float smoothStrength < Attribute("DistanceBlend_SmoothStrength"); > ;
+    float lerpInterpolation < Attribute("DistanceBlend_LerpInterpolation"); > ;
+
+    float4 FindColorAtNearbyUV(float2 uv, float centerDistance, inout int blendCount)
+    {
+        float3 worldPosition = Depth::GetWorldPosition(uv);
+        float distance = length(worldPosition - g_vCameraPositionWs);
+
+        float depthDelta = abs(centerDistance - distance);
+        if (depthDelta < maxDepthDelta)
+        {
+            blendCount++;
+
+            return g_tColorBuffer.Sample(g_sDefault, uv);
+        }
+
+        return float4(0, 0, 0, 0);
+    }
+
+    float4 MainPs(PixelInput input ) : SV_Target0
+    {
         // Center Pixel
         int blendCount = 1;
-        float4 centerColor = g_ColorBuffer.Sample(g_SampleState, input.uv);
-        float centerDepth = Depth::Get(input.uv);
+        float4 centerColor = g_tColorBuffer.Sample(g_sDefault, input.uv);
+        float3 centerWorldPosition = Depth::GetWorldPosition(input.uv);
+        float centerDistance = length(centerWorldPosition - g_vCameraPositionWs);
 
         // Sample nearby pixels.
 
         // Top Left Pixel
-        float2 topLeftUV = input.uv + float2(-1 * g_EffectRange.BlendRange, -1 * g_EffectRange.BlendRange);
-        float4 topLeftColor = FindColorAtNearbyUV(topLeftUV, centerDepth, blendCount);
+        float2 topLeftUV = input.uv + float2(-1 * blendRange, -1 * blendRange);
+        float4 topLeftColor = FindColorAtNearbyUV(topLeftUV, centerDistance, blendCount);
 
         // Bottom Right Pixel
-        float2 bottomRightUV = input.uv + float2(g_EffectRange.BlendRange, g_EffectRange.BlendRange);
-        float4 bottomRightColor = FindColorAtNearbyUV(bottomRightUV, centerDepth, blendCount);
+        float2 bottomRightUV = input.uv + float2(blendRange, blendRange);
+        float4 bottomRightColor = FindColorAtNearbyUV(bottomRightUV, centerDistance, blendCount);
 
         // Top Right Pixel
-        float2 topRightUV = input.uv + float2(g_EffectRange.BlendRange, -1 * g_EffectRange.BlendRange);
-        float4 topRightColor = FindColorAtNearbyUV(topRightUV, centerDepth, blendCount);
+        float2 topRightUV = input.uv + float2(blendRange, -1 * blendRange);
+        float4 topRightColor = FindColorAtNearbyUV(topRightUV, centerDistance, blendCount);
 
         // Bottem Left Pixel
-        float2 bottomLeftUV = input.uv + float2(-1 * g_EffectRange.BlendRange, g_EffectRange.BlendRange);
-        float4 bottomLeftColor = FindColorAtNearbyUV(bottomLeftUV, centerDepth, blendCount);
+        float2 bottomLeftUV = input.uv + float2(-1 * blendRange, blendRange);
+        float4 bottomLeftColor = FindColorAtNearbyUV(bottomLeftUV, centerDistance, blendCount);
 
         // Take the average of all nearby pixels at similar similar depth (defined by MaxDepthDelta)
-        float4 nearbyPixelBlendedColor = 
+        float4 nearbyPixelBlendedColor =
             (centerColor + topLeftColor + bottomRightColor + topRightColor + bottomLeftColor) / blendCount;
 
         // To correct for edges we take the delta of the color and multiply it by EdgeStrength.
         // We do that so edges are kept where there is a large change in color.
         float4 colorDelta = abs(centerColor - nearbyPixelBlendedColor);
-        float4 edgeCorrectedColor = colorDelta * g_EffectStrength.EdgeStrength;
+        float4 edgeCorrectedColor = colorDelta * edgeStrength;
 
         // We create a smooth transition of color using the depth of the uv.
-        float normalizedDepth = smoothstep(centerDepth / g_EffectRange.MaxEffectDepth, g_EffectRange.BlendStart, g_EffectRange.BlendEnd);
+        float normalizedDepth = smoothstep(centerDistance / maxEffectDepth, blendStart, blendEnd);
         float4 depthBlendColor = nearbyPixelBlendedColor * normalizedDepth;
 
         // How much of the original color is put back in.
-        float4 smoothingColor = centerColor * g_EffectStrength.SmoothStrength;
+        float4 smoothingColor = centerColor * smoothStrength;
 
         // Finally we combine everything and use lerp to smooth everything out a final time.
         float4 combinedColor = edgeCorrectedColor + depthBlendColor + smoothingColor;
-        float4 blendedColor = lerp(centerColor, combinedColor, g_EffectStrength.LerpInterpolation);
-        
+        float4 blendedColor = lerp(centerColor, combinedColor, lerpInterpolation);
+
         return blendedColor;
-    }
-
-    float4 FindColorAtNearbyUV(float2 uv, float centerDepth, inout int blendCount)
-    {
-        float depth = Depth.Get(uv);
-
-        float depthDelta = abs(centerDepth - depth);
-        if (depthDelta < g_EffectRange.MaxDepthDelta)
-        {
-            blendCount++;
-
-            return g_ColorBuffer.Sample(g_SampleState, uv);
-        }
-
-        return float4(0, 0, 0, 0);
     }
 }
