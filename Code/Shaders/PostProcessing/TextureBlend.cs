@@ -6,7 +6,7 @@ using Sandbox.Rendering;
 [Title("Texture Blend")]
 [Category("Post Processing")]
 [Description("Blend a texture with the current screen image state")]
-[Icon("grain")]
+[Icon("texture")]
 public sealed class TextureBlend : BasePostProcess<TextureBlend>
 {   
     // Texture
@@ -16,16 +16,9 @@ public sealed class TextureBlend : BasePostProcess<TextureBlend>
     private Texture _blendTexture = null;
 
 
-    // Strength
     [Property]
-    [Category("Strength")]
-    [Description("How much the current image state gets blended in.")]
-    private float _currentStateStrength = 1.0f;
-
-    [Property]
-    [Category("Strength")]
+    [Category("Texture")]
     [Description("Intensity of the blended texture.")]
-    [Range(0f, 1f)]
     private float _textureStrength = 0.5f;
 
 
@@ -45,9 +38,9 @@ public sealed class TextureBlend : BasePostProcess<TextureBlend>
     private Material _material;
 
 
-	protected override void OnEnabled()
+	protected override void OnStart()
 	{
-		base.OnEnabled();
+		base.OnStart();
 
         if (_blendTexture == null)
         {
@@ -73,7 +66,6 @@ public sealed class TextureBlend : BasePostProcess<TextureBlend>
             Attributes.Set("TextureBlend_BlendTexture", _blendTexture);
 
             // Strength
-            Attributes.Set("TextureBlend_CurrentStateStrength", _currentStateStrength);
             Attributes.Set("TextureBlend_TextureStrength", _textureStrength);
 
             // Tiling

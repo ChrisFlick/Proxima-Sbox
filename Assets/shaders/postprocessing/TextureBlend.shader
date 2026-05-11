@@ -1,8 +1,3 @@
-HEADER
-{
-    DevShader = true;
-}
-
 MODES
 {
     Default();
@@ -56,6 +51,8 @@ PS
     Texture2D g_tColorBuffer < Attribute("ColorBuffer"); SrgbRead(true); > ;
     Texture2D blendTexture < Attribute("TextureBlend_BlendTexture"); SrgbRead(false); > ;
 
+    float textureStrength < Attribute("TextureBlend_TextureStrength"); > ;
+
     // Tiling
     float tiling < Attribute("TextureBlend_Tiling"); > ;
     float xOffset < Attribute("TextureBlend_XOffset"); > ;
@@ -69,6 +66,7 @@ PS
         float2 textureUV = input.uv * tiling;
         textureUV += float2(xOffset, yOffset);
         float4 blendColor = blendTexture.Sample(g_sBilinearWrap, textureUV);
+        blendColor *= textureStrength;
 
         return sceneColor * blendColor;
     }

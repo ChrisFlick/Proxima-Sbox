@@ -5,7 +5,7 @@ using Sandbox;
 [Title("Distance Blend")]
 [Category("Post Processing")]
 [Description("Blends pixels at a distance")]
-[Icon("grain")]
+[Icon("join_inner")]
 public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
 {
     // Effect Range
@@ -43,8 +43,10 @@ public sealed class DistanceBlend : BasePostProcess<DistanceBlend>
 
     private Material _material;
 
-    protected override void OnEnabled()
+    protected override void OnStart()
     {
+        base.OnStart();
+        
         _material = Material.FromShader("Shaders/PostProcessing/DepthBlend.shader");
     }
     
